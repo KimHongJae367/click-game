@@ -62,7 +62,7 @@ function showRandomButton() {
     const buttonType = buttonTypes[Math.floor(Math.random() * buttonTypes.length)];
 
     if (buttonType === 'normal') {
-        btn.style.backgroundImage = 'url("IMG_2203.png")';
+        btn.style.backgroundImage = ("IMG_2203.png");
         btn.addEventListener('click', () => {
             score++;
             scoreDisplay.textContent = `Score: ${score}`;
@@ -70,7 +70,7 @@ function showRandomButton() {
             showRandomButton();
         });
     } else if (buttonType === 'special') {
-        btn.style.backgroundImage = 'url("IMG_2204.png")';
+        btn.style.backgroundImage = ("IMG_2204.png");
         btn.addEventListener('click', () => {
             score += 3;
             scoreDisplay.textContent = `Score: ${score}`;
@@ -78,7 +78,7 @@ function showRandomButton() {
             showRandomButton();
         });
     } else if (buttonType === 'bomb') {
-        btn.style.backgroundImage = 'url("IMG_2202.png")';
+        btn.style.backgroundImage = ("IMG_2202.png");
         btn.addEventListener('click', () => {
             score--;
             scoreDisplay.textContent = `Score: ${score}`;
