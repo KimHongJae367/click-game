@@ -1,0 +1,44 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+#gameArea {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    border: 1px solid #000;
+    overflow: hidden;
+    margin: 20px auto;
+    background-color: #f0f0f0;
+}
+
+.gameButton {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+#score, #timeLeft {
+    text-align: center;
+    font-size: 24px;
+}
+
+#startButton {
+    display: block;
+    margin: 20px auto;
+    font-size: 18px;
+    padding: 10px 20px;
+}
+
+#timeInput {
+    display: block;
+    margin: 20px auto;
+    font-size: 18px;
+    width: 200px;
+    text-align: center;
+}
