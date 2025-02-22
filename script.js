@@ -1,3 +1,4 @@
+/* script.js */
 let score = 0;
 let timeLeft = 30;
 let gameStarted = false;
