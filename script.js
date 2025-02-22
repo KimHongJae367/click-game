@@ -1,100 +1,159 @@
-let score = 0;
-let timeLeft = 30;
-let gameStarted = false;
-let gameInterval;
-let buttonTimeout;
+/********************************
+ * 1) 기본 변수 설정
+ ********************************/
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const resetBtn = document.getElementById("resetBtn");
 
-const scoreDisplay = document.getElementById('score');
-const timeDisplay = document.getElementById('timeLeft');
-const startButton = document.getElementById('startButton');
-const gameArea = document.getElementById('gameArea');
-const timeInput = document.getElementById('timeInput');
+const WIDTH = canvas.width;   
+const HEIGHT = canvas.height; 
 
-startButton.addEventListener('click', startGame);
+// 새 이미지
+const birdImg = new Image();
+birdImg.src = "images/bird.png";
 
-function startGame() {
-    if (gameStarted) return;
-    gameStarted = true;
-    score = 0;
+// 파이프 이미지
+const pipeNorthImg = new Image();
+pipeNorthImg.src = "images/north.png";
+const pipeSouthImg = new Image();
+pipeSouthImg.src = "images/south.png";
 
-    const userTime = parseInt(timeInput.value);
-    if (!isNaN(userTime) && userTime > 0) {
-        timeLeft = userTime;
-    } else {
-        timeLeft = 30;
-    }
+// 점프 소리
+const jumpSound = new Audio('sound/jump.mp3');
 
-    scoreDisplay.textContent = `Score: ${score}`;
-    timeDisplay.textContent = `Time left: ${timeLeft}`;
-    startButton.style.display = 'none';
-    timeInput.style.display = 'none';
+// (추가) 배경 음악
+const bgm = new Audio('sound/bgm.mp3');
+bgm.loop = true;
+bgm.volume = 0.5;  // 볼륨 50%
 
-    gameInterval = setInterval(() => {
-        timeLeft--;
-        timeDisplay.textContent = `Time left: ${timeLeft}`;
-        if (timeLeft <= 0) {
-            endGame();
-        }
-    }, 1000);
+// 이미지 로딩 확인
+let imagesLoaded = 0;
+const totalImages = 3;  // 전체 이미지 개수
 
-    showRandomButton();
+birdImg.onload = pipeNorthImg.onload = pipeSouthImg.onload = function() {
+  imagesLoaded++;
+  if (imagesLoaded === totalImages) {
+    initGame();
+    gameLoop();
+  }
+};
+
+/********************************
+ * 2) 게임 상태 변수
+ ********************************/
+let birdX, birdY;
+let birdSize = 34;
+let velocity;
+const gravity = 0.5;
+const jumpPower = -8;
+
+let pipes = [];
+const gap = 200;
+const pipeWidth = 52;
+const pipeSpeed = 2;
+
+let score;
+let isGameOver;
+
+let spawnTimer;
+const spawnInterval = 90;
+
+/********************************
+ * 3) 게임 초기화 함수
+ ********************************/
+function initGame() {
+  birdX = 50;
+  birdY = HEIGHT / 2 - birdSize / 2;
+  velocity = 0;
+
+  score = 0;
+  isGameOver = false;
+
+  pipes = [];
+  spawnTimer = 0;
+
+  // 배경 음악 재생
+  bgm.currentTime = 0;
+  bgm.play();
 }
 
-function endGame() {
-    clearInterval(gameInterval);
-    clearTimeout(buttonTimeout);
-    gameArea.innerHTML = '';
-    gameStarted = false;
-    startButton.style.display = 'block';
-    timeInput.style.display = 'block';
-    alert(`Game Over! Your final score is ${score}`);
+/********************************
+ * 4) 점프 함수
+ ********************************/
+function jump() {
+  if (!isGameOver) {
+    velocity = jumpPower;
+    jumpSound.currentTime = 0;
+    jumpSound.play();
+  }
 }
 
-function showRandomButton() {
-    if (!gameStarted) return;
+/********************************
+ * 5) 게임 종료 시 BGM 정지 또는 서서히 낮추기
+ ********************************/
+function update() {
+  if (isGameOver) return;
 
-    gameArea.innerHTML = '';
+  velocity += gravity;
+  birdY += velocity;
 
-    const btn = document.createElement('button');
-    btn.classList.add('gameButton');
+  for (let i = 0; i < pipes.length; i++) {
+    let p = pipes[i];
+    p.x -= pipeSpeed;
 
-    const buttonTypes = ['normal', 'special', 'bomb'];
-    const buttonType = buttonTypes[Math.floor(Math.random() * buttonTypes.length)];
-
-    if (buttonType === 'normal') {
-        btn.style.backgroundImage = 'url("images/IMG_2203.png")';
-        btn.addEventListener('click', () => {
-            score++;
-            scoreDisplay.textContent = `Score: ${score}`;
-            clearTimeout(buttonTimeout);
-            showRandomButton();
-        });
-    } else if (buttonType === 'special') {
-        btn.style.backgroundImage = 'url("images/IMG_2204.png")';
-        btn.addEventListener('click', () => {
-            score += 3;
-            scoreDisplay.textContent = `Score: ${score}`;
-            clearTimeout(buttonTimeout);
-            showRandomButton();
-        });
-    } else if (buttonType === 'bomb') {
-        btn.style.backgroundImage = 'url("images/IMG_2202.png")';
-        btn.addEventListener('click', () => {
-            score--;
-            scoreDisplay.textContent = `Score: ${score}`;
-            clearTimeout(buttonTimeout);
-            showRandomButton();
-        });
+    if (p.x + pipeWidth < 0) {
+      pipes.splice(i, 1);
+      i--;
+      continue;
     }
 
-    const maxX = gameArea.clientWidth - 100;
-    const maxY = gameArea.clientHeight - 100;
-    const x = Math.floor(Math.random() * maxX);
-    const y = Math.floor(Math.random() * maxY);
-    btn.style.left = `${x}px`;
-    btn.style.top = `${y}px`;
+    if (!p.passed && p.x + pipeWidth < birdX) {
+      score++;
+      p.passed = true;
+    }
 
-    gameArea.appendChild(btn);
+    if (checkCollision(p)) {
+      if (!isGameOver) {
+        isGameOver = true;
 
-    buttonTimeout = setTimeout(showRandomButton, 1000);
+        // 게임이 끝나면 BGM을 줄이면서 멈추기
+        let fadeOut = setInterval(() => {
+          if (bgm.volume > 0.05) {
+            bgm.volume -= 0.05;
+          } else {
+            clearInterval(fadeOut);
+            bgm.pause();
+          }
+        }, 200);
+      }
+    }
+  }
+
+  spawnTimer++;
+  if (spawnTimer >= spawnInterval) {
+    createPipe(WIDTH + 20);
+    spawnTimer = 0;
+  }
+
+  if (birdY < 0 || birdY + birdSize > HEIGHT) {
+    isGameOver = true;
+  }
+}
+
+/********************************
+ * 6) 리셋 시 BGM 다시 재생
+ ********************************/
+function resetGame() {
+  initGame();
+  bgm.currentTime = 0;
+  bgm.play();
+}
+
+/********************************
+ * 7) 게임 루프
+ ********************************/
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
 }
